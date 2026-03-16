@@ -7,3 +7,5 @@
 !app.py
 !embed.py
 !requirements.txt
+!app_hf.py
+!extract_rep_images.py
