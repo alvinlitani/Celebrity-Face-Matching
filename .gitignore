@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# Whitelist 
+!README.md
+!.gitignore
+!app.py
+!embed.py
+!requirements.txt

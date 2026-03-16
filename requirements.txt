@@ -1,0 +1,7 @@
+gradio
+faiss-cpu
+facenet-pytorch
+torch
+torchvision
+numpy
+Pillow
