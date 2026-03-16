@@ -1,18 +1,11 @@
----
-title: Celebrity Face Matching
-emoji: 🎭
-colorFrom: purple
-colorTo: blue
-sdk: gradio
-sdk_version: 4.44.0
-app_file: app.py
-pinned: false
----
-
 # Celebrity Face Matching
 
-A computer vision app that finds which CelebA dataset identity you most resemble, using face embeddings and nearest-neighbor search. Built with facenet-pytorch and FAISS, deployed as a Gradio web app.
+A computer vision app that takes in photo as input and find which celebrity in CelebA dataset that you most resemble using face embeddings and nearest-neighbor search. It is built with facenet-pytorch and FAISS. User interface is a Gradio web app.
 
+![Python](https://img.shields.io/badge/Python-v3.11-blue?logo=python)
+![PyTorch](https://img.shields.io/badge/PyTorch-v2.5.1-green?logo=pytorch)
+![FAISS](https://img.shields.io/badge/FAISS-v1.13.2-orange)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 ---
 
 ## How It Works
@@ -33,7 +26,7 @@ Runs for each uploaded photo:
 1. Detect and align face using MTCNN
 2. Generate 512-dim embedding via InceptionResnetV1
 3. L2-normalize and search the FAISS index for top-k nearest neighbors
-4. Deduplicate results by identity and return ranked matches with similarity scores
+4. Filter duplicate results by identity and return ranked matches with similarity scores
 
 ---
 
@@ -46,7 +39,7 @@ Runs for each uploaded photo:
 | `celeba_face_index.faiss` | Pre-built FAISS search index |
 | `celeba_identities.npy` | Maps FAISS positions → CelebA identity IDs |
 | `identity.txt` | Maps image filenames → identity IDs (ships with CelebA as `identity_CelebA.txt`) |
-| `requirements.txt` | Dependencies for HF Spaces deployment |
+| `requirements.txt` | Dependencies |
 
 ---
 
@@ -61,9 +54,9 @@ Runs for each uploaded photo:
 
 ## Notes
 
-- CelebA uses numeric identity IDs — real celebrity names are not publicly released with the dataset
-- Embeddings are 512-dimensional, L2-normalized; similarity scores range from 0 (no match) to 1 (identical), though in practice scores rarely exceed ~0.85 even for the same person
-- Index building takes ~2 hours on a consumer GPU and is impractical on CPU; inference runs fine on CPU (just slower)
+- CelebA uses numeric identity IDs as real celebrity names are not publicly released with the dataset
+- Embeddings are 512-dimensional, L2-normalized with similarity scores range from 0 (no match) to 1 (identical)
+- Index building (embed.py) takes 2-3 hours on a consumer GPU in my own experience. It will be unfeasible for CPU. Inference runs fine on CPU.
 
 ---
 
@@ -71,9 +64,8 @@ Runs for each uploaded photo:
 
 ### Prerequisites
 
-- Python 3.9+
 - CUDA-capable GPU recommended (required for index building, optional for inference)
-- ~2 GB disk space for the CelebA dataset and generated index files
+- 3+ GB disk space for the CelebA dataset and generated index files
 
 ### 1. Install dependencies
 ```bash
@@ -86,8 +78,6 @@ python embed.py
 ```
 
 CelebA will auto-download via torchvision on the first run. If the download fails (common due to Google Drive quotas), download manually from [the official page](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) and place the files in `./data/celeba/`.
-
-You will also need `identity_CelebA.txt` from the dataset — rename or symlink it to `./identity.txt` so the app can map identities to representative images.
 
 ### 3. Run the app
 ```bash
