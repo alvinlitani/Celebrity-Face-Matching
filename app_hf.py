@@ -130,7 +130,7 @@ with gradio.Blocks(title="Celebrity Face Matching") as demo:
         """
         # Celebrity Face Matching
         Upload a photo to find which [CelebA](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html)
-        dataset identities you most resemble, ranked by **cosine similarity**.
+        dataset identities you most resemble which is ranked by **cosine similarity**.
 
         > **Note:** CelebA uses numeric identity IDs — real celebrity names are not publicly
         > released with the dataset.
@@ -169,4 +169,4 @@ with gradio.Blocks(title="Celebrity Face Matching") as demo:
     submit_btn.click(fn=match, inputs=[input_image, top_n_slider], outputs=[gallery_output, table_output])
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(theme=gradio.themes.Glass())
