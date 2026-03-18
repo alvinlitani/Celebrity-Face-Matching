@@ -4,4 +4,4 @@ facenet-pytorch
 torch
 torchvision
 numpy
-Pillow
+Pillow==11.1.0
