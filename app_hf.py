@@ -4,6 +4,7 @@ import torch
 import gradio
 from PIL import Image
 from facenet_pytorch import MTCNN, InceptionResnetV1
+import zipfile
 
 # Config
 INDEX_FILE     = "./celeba_face_index.faiss"
@@ -12,6 +13,10 @@ IDENTITY_TXT   = "./identity.txt"
 IMG_DIR        = "./rep_images"         # pre-extracted representative images for HuggingFace Spaces
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+with zipfile.ZipFile('your_file.zip', 'r') as zip_ref:
+    zip_ref.extractall('destination_folder')
+
 
 # Load FAISS index and the parallel identity array
 index = faiss.read_index(INDEX_FILE)
