@@ -23,7 +23,7 @@ Runs once locally to build the searchable database:
 3. Detect and align faces using **MTCNN**
 4. Generate a 512-dim embedding per face using **InceptionResnetV1** (VGGFace2 pretrained) 
 5. **L2-normalize** all embeddings (enables cosine similarity)
-6. Build a **FAISS `IndexFlatIP`** index and save to disk
+6. Build a **FAISS** index and save to disk
 
 ### Phase 2 — Online Inference (`app.py`)
 Runs for each uploaded photo:
@@ -55,14 +55,15 @@ Runs for each uploaded photo:
 
 - CelebA uses numeric identity IDs as real celebrity names are not publicly released with the dataset
 - Embeddings are 512-dimensional, L2-normalized with similarity scores range from 0 (no match) to 1 (identical)
-- Index building (embed.py) takes 2-3 hours on a consumer GPU in my own experience. It will be unfeasible for CPU. Inference runs fine on CPU.
+- Index building (embed.py) takes 2-3 hours on a consumer GPU in my own experience. Index building will be unfeasible/very slow for CPU. 
+- Inference runs fine on CPU
 
 ## Local Setup
 
 ### Prerequisites
 
 - CUDA-capable GPU recommended (required for index building, optional for inference)
-- 3+ GB disk space for the CelebA dataset and generated index files
+- ~3+ GB disk space for the CelebA dataset and generated index files
 
 ### 1. Install dependencies
 ```bash
@@ -83,24 +84,18 @@ python app.py
 
 ## Design Decisions
  
-- **Two-model pipeline (MTCNN + InceptionResnetV1)**: Face recognition requires two distinct tasks — locating/aligning a face in an arbitrary image, and extracting an identity-capturing embedding from that aligned face. MTCNN handles the first (detection and alignment to a standardized 160×160 crop), and InceptionResnetV1 handles the second (producing a 512-dim embedding). Feeding raw, uncropped images directly into the embedding model would produce noisy vectors polluted by background, hair, and clothing.
+- **Two-model pipeline (MTCNN + InceptionResnetV1)**: MTCNN handles the detection and alignment of faces then converting to a standardized 160×160 crop. InceptionResnetV1 extracts an embedding from the aligned face that represents the identity. Having raw and uncropped images as input into the embedding model will produce noisy vectors polluted by background and clothing.
+
+- **VGGFace2 pretrained weights**: facenet-pytorch offers two pretrained options (CASIA-WebFace and VGGFace2). VGGFace2 was chosen because it has larger training data (3.31 million images versus 494,000 images) and it having great diversity in pose, age, lighting, and ethnicity. This helps the system to work better with the different kinds of uploaded photos.
  
-- **VGGFace2 pretrained weights**: facenet-pytorch offers two pretrained options — VGGFace2 and CASIA-WebFace. VGGFace2 was chosen for its larger scale (~3.3M images, 9k+ identities) and greater diversity in pose, age, lighting, and ethnicity, which produces embeddings that generalize better to the varied conditions of user-uploaded photos.
+- **Offline/online split**: Building the index can take a long time (2–3 hours on laptop GPU in personal experience) but it only needs to be done once. Putting it in a separate script (embed.py) keeps the main app (app.py) lightweight as it loads the pre-built index on startup and does not need to build the index everytime.
  
-- **Offline/online split**: Index building is expensive (2-3 hours on GPU, 200k images) but only needs to run once. Separating it into `embed.py` keeps the inference app (`app.py`) lightweight and fast — it loads the pre-built index at startup and searches are near-instant.
+- **L2 normalization + IndexFlatIP**: Normalizing all embeddings to the same scale means that a simple dot product gives us the same results as cosine similarity. This lets us use FAISS's IndexFlatIP for fast similarity search without needing any special cosine index. Cosine similarity compares the direction of two embeddings instead of their length which tends to produce more reliable similarity scores.
  
-- **L2 normalization + IndexFlatIP**: L2-normalizing all embeddings to unit length makes inner product (dot product) mathematically equivalent to cosine similarity. This lets us use FAISS's `IndexFlatIP` for fast, exact cosine similarity search without needing a dedicated cosine index.
- 
-- **FAISS exact search (IndexFlatIP)**: At ~200k embeddings of 512 dimensions, exact brute-force search is fast enough (sub-second). Approximate methods like IndexIVFFlat add complexity (training, tuning nprobe) with minimal latency benefit at this scale.
- 
-- **Deduplication by identity**: CelebA contains ~20 images per identity on average. Without deduplication, a top-4 search could return four different photos of the same person. The app over-fetches from FAISS and filters by identity ID, keeping only the highest-scoring hit per person.
+- **Removing identity duplicates**: CelebA has around 20 images per person. Without removing duplicates, a top-4 search could return four different photos of the same person. Instead, the app fetches extra results from FAISS and keeps only the best match per person.
 
 ## Potential Improvements
  
-- **Named celebrity mapping**: CelebA only provides numeric identity IDs — real names are not included in the public dataset. Mapping IDs to actual celebrity names (via a community-maintained list or manual annotation) would make results more meaningful to users.
+- **Named celebrity mapping**: CelebA only provides numeric identity IDs without the person's real name. If the dataset provider updates the dataset with inclusion of names, the app can show the celebrity names instead of just identity numbers.
  
-- **Dynamic representative images**: Currently, the gallery thumbnail for each identity is a fixed representative image (the first listed in `identity.txt`), regardless of which specific photo scored highest in the search. Storing a FAISS position-to-filename mapping would allow showing the actual best-matching image instead.
- 
-- **Approximate nearest-neighbor search**: The current `IndexFlatIP` performs exact brute-force search, which is fine at 200k embeddings. At larger scales (millions+), switching to an approximate index like `IndexIVFFlat` or `IndexHNSW` would keep search times low at the cost of a small accuracy tradeoff.
- 
-- **Double detection (resolved)**: An earlier version of the app ran face detection twice per query — once via `mtcnn.detect()` for bounding boxes and again via `mtcnn()` for aligned face tensors. This was refactored to call `mtcnn.detect()` once and pass the boxes to `mtcnn.extract()`, eliminating the redundant work.
+- **Approximate nearest-neighbor search**: The current index uses exact search for every embedding which works fine at 200k images. For larger datasets (millions+), switching to an approximate index like IndexIVFFlat or IndexHNSW will lower search times with a small accuracy tradeoff.
