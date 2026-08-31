@@ -1,6 +1,6 @@
 # Celebrity Face Matching
 
-A computer vision app that takes in photo as input and find which celebrity in [CelebA dataset](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) dataset that you most resemble using face embeddings and nearest-neighbor search. It is built with facenet-pytorch and FAISS. User interface is a Gradio web app.
+A computer vision app that takes in photo as input and find which celebrity in [CelebA dataset](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) that you most resemble using face embeddings and nearest-neighbor search. It is built with facenet-pytorch and FAISS. User interface is a Gradio web app.
 
 ![Python](https://img.shields.io/badge/Python-v3.11-blue?logo=python)
 ![PyTorch](https://img.shields.io/badge/PyTorch-v2.5.1-green?logo=pytorch)
